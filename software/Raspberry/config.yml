@@ -1,0 +1,8 @@
+---
+  intra:
+    client: "bc81a98617d205793ca796476be1d36cc14514d57c944ba5b0c47c6cd5a8f944" #UID
+    secret: "" #SECRET
+    uri: "https://api.intra.42.fr/v2/oauth/token"
+    endpoint: "https://api.intra.42.fr/v2"
+    scopes: "public"
+

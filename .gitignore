@@ -27,3 +27,4 @@ fp-info-cache
 
 # token file
 software/Raspberry/credentials.py
+**.DS_Store

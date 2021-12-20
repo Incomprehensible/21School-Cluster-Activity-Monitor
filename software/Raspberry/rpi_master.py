@@ -8,6 +8,8 @@ from rpi_DB import Status, ClusterDB
 from STM32 import STM32_addr, STM32_leds, STM32_rooms
 from Grafana import Grafana
 
+C_MODE = 1
+
 config = ConfigParser()
 config.read('config.ini')
 BRIGHT = float(config.get('settings', 'BRIGHT')) # Volt
@@ -26,6 +28,14 @@ COLOR_USED = int(config.get('settings', 'COLOR_USED'))
 COLOR_COVID = int(config.get('settings', 'COLOR_COVID'))
 COLOR_EXAM = int(config.get('settings', 'COLOR_EXAM'))
 COLOR_HERE = int(config.get('settings', 'COLOR_HERE'))
+
+COMMAND_SET_C_COLORS = int(config.get('settings', 'COMMAND_SET_C_COLORS'))
+COMMAND_SET_C_MATRIX = int(config.get('settings', 'COMMAND_SET_C_MATRIX'))
+COLOR_EMP = int(config.get('settings', 'COLOR_EMP'))
+COLOR_ALP = int(config.get('settings', 'COLOR_ALP'))
+COLOR_CAP = int(config.get('settings', 'COLOR_CAP'))
+COLOR_SAL = int(config.get('settings', 'COLOR_SAL'))
+COLOR_MED = int(config.get('settings', 'COLOR_MED'))
 
 class STM32:
     def __init__(self, addr, name, leds, rooms) -> None:
@@ -87,13 +97,19 @@ class Master:
     def init_colors(self):
         for cluster in self.clusters:
             print(cluster)
-            self.construct_packet(cluster, COMMAND_SET_COLORS)
+            if (C_MODE):
+                self.construct_packet(cluster, COMMAND_SET_C_COLORS)
+            else:
+                self.construct_packet(cluster, COMMAND_SET_COLORS)
 
     def monitor_clusters(self):
         # parse metrics data for each cluster
         # ask bd if any changes per mac (try to change status)
         # based on return value construct msg to stm, at the end update stm32
-        self.grafana.get_metrics() # grafana class updates bd
+        if (C_MODE):
+            self.grafana.get_metrics_c_mode() # grafana class updates bd
+        else:
+            self.grafana.get_metrics()
         for cluster in self.clusters:
             # get number of leds in cluster
             # get value by led id
@@ -107,50 +123,71 @@ class Master:
             print('sent matrix')
     def update_bd(self):
         pass
-    def construct_packet(self, cluster, cmd):
-        stm32 = self.clusters.index(cluster)
-        leds = self.stm32[stm32].leds()
-        rooms = self.stm32[stm32].rooms()
-        i2c_array = [0] * (1 + leds + rooms)
-        if cmd == COMMAND_SET_MATRIX:
-            #i2c_array = [None] * (6 + leds)
-            i2c_array[0] = int(COMMAND_SET_MATRIX)
-            #i2c_array[0] = int(Status.FREE)
-            #i2c_array[1] = int(Status.USED)
-            #i2c_array[2] = int(Status.COVID)
-            #i2c_array[3] = int(Status.EXAM)
-            #i2c_array[4] = 0 # WTF
-            #i2c_array[5] = self.getBrightnessLevel()
-            self.fill_cluster_array(cluster, i2c_array, leds, rooms)
-        elif cmd == COMMAND_SET_BRIGHTNESS:
-            i2c_array[0] = int(COMMAND_SET_BRIGHTNESS)
-            i2c_array[1] = int(self.get_brightness())
-            print(i2c_array)
-        elif cmd == COMMAND_SET_COLORS:
-            i2c_array[0] = int(COMMAND_SET_COLORS)
-            i2c_array[1] = (COLOR_FREE & 0xff0000) >> 16
-            i2c_array[2] = (COLOR_FREE & 0x00ff00) >> 8
-            i2c_array[3] = (COLOR_FREE & 0x0000ff)
-            i2c_array[4] = (COLOR_USED & 0xff0000) >> 16
-            i2c_array[5] = (COLOR_USED & 0x00ff00) >> 8
-            i2c_array[6] = (COLOR_USED & 0x0000ff)
-            i2c_array[7] = (COLOR_COVID & 0xff0000) >> 16
-            i2c_array[8] = (COLOR_COVID & 0x00ff00) >> 8
-            i2c_array[9] = (COLOR_COVID & 0x0000ff)
-            i2c_array[10] = (COLOR_EXAM & 0xff0000) >> 16
-            i2c_array[11] = (COLOR_EXAM & 0x00ff00) >> 8
-            i2c_array[12] = (COLOR_EXAM & 0x0000ff)
-            i2c_array[13] = (COLOR_HERE & 0xff0000) >> 16
-            i2c_array[14] = (COLOR_HERE & 0x00ff00) >> 8
-            i2c_array[15] = (COLOR_HERE & 0x0000ff)
-            print(i2c_array)
 
-        stm32_addr = self.stm32[stm32].addr()
-        try:
-            self.send_packet(stm32_addr, i2c_array)
-        except:
-            print("error sending packet!!!")
-            pass
+    def construct_packet(self, cluster, cmd):
+        if (C_MODE):
+            construct_packet_c_mode(cluster, cmd)
+        else:
+            stm32 = self.clusters.index(cluster)
+            leds = self.stm32[stm32].leds()
+            rooms = self.stm32[stm32].rooms()
+            i2c_array = [0] * (1 + leds + rooms)
+            if cmd == COMMAND_SET_MATRIX:
+                #i2c_array = [None] * (6 + leds)
+                i2c_array[0] = int(COMMAND_SET_MATRIX)
+                #i2c_array[0] = int(Status.FREE)
+                #i2c_array[1] = int(Status.USED)
+                #i2c_array[2] = int(Status.COVID)
+                #i2c_array[3] = int(Status.EXAM)
+                #i2c_array[4] = 0 # WTF
+                #i2c_array[5] = self.getBrightnessLevel()
+                self.fill_cluster_array(cluster, i2c_array, leds, rooms)
+            elif cmd == COMMAND_SET_BRIGHTNESS:
+                i2c_array[0] = int(COMMAND_SET_BRIGHTNESS)
+                i2c_array[1] = int(self.get_brightness())
+                print(i2c_array)
+            elif cmd == COMMAND_SET_COLORS:
+                i2c_array[0] = int(COMMAND_SET_COLORS)
+                i2c_array[1] = (COLOR_FREE & 0xff0000) >> 16
+                i2c_array[2] = (COLOR_FREE & 0x00ff00) >> 8
+                i2c_array[3] = (COLOR_FREE & 0x0000ff)
+                i2c_array[4] = (COLOR_USED & 0xff0000) >> 16
+                i2c_array[5] = (COLOR_USED & 0x00ff00) >> 8
+                i2c_array[6] = (COLOR_USED & 0x0000ff)
+                i2c_array[7] = (COLOR_COVID & 0xff0000) >> 16
+                i2c_array[8] = (COLOR_COVID & 0x00ff00) >> 8
+                i2c_array[9] = (COLOR_COVID & 0x0000ff)
+                i2c_array[10] = (COLOR_EXAM & 0xff0000) >> 16
+                i2c_array[11] = (COLOR_EXAM & 0x00ff00) >> 8
+                i2c_array[12] = (COLOR_EXAM & 0x0000ff)
+                i2c_array[13] = (COLOR_HERE & 0xff0000) >> 16
+                i2c_array[14] = (COLOR_HERE & 0x00ff00) >> 8
+                i2c_array[15] = (COLOR_HERE & 0x0000ff)
+                print(i2c_array)
+            elif cmd == COMMAND_SET_C_COLORS:
+                i2c_array[0] = int(COMMAND_SET_COLORS)
+                i2c_array[1] = (COLOR_EMP & 0xff0000) >> 16
+                i2c_array[2] = (COLOR_EMP & 0x00ff00) >> 8
+                i2c_array[3] = (COLOR_EMP & 0x0000ff)
+                i2c_array[4] = (COLOR_ALP & 0xff0000) >> 16
+                i2c_array[5] = (COLOR_ALP & 0x00ff00) >> 8
+                i2c_array[6] = (COLOR_ALP & 0x0000ff)
+                i2c_array[7] = (COLOR_CAP & 0xff0000) >> 16
+                i2c_array[8] = (COLOR_CAP & 0x00ff00) >> 8
+                i2c_array[9] = (COLOR_CAP & 0x0000ff)
+                i2c_array[10] = (COLOR_SAL & 0xff0000) >> 16
+                i2c_array[11] = (COLOR_SAL & 0x00ff00) >> 8
+                i2c_array[12] = (COLOR_SAL & 0x0000ff)
+                i2c_array[13] = (COLOR_MED & 0xff0000) >> 16
+                i2c_array[14] = (COLOR_MED & 0x00ff00) >> 8
+                i2c_array[15] = (COLOR_MED & 0x0000ff)
+                print(i2c_array)
+            stm32_addr = self.stm32[stm32].addr()
+            try:
+                self.send_packet(stm32_addr, i2c_array)
+            except:
+                print("error sending packet!!!")
+                pass
     def send_packet(self, addr, data):
         msg = i2c_msg.write(addr, data)
         self.bus.i2c_rdwr(msg)

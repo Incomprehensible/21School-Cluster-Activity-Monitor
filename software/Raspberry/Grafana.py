@@ -14,6 +14,30 @@ class Grafana:
         self.headers = {'Authorization': 'Bearer %s' % (API_KEY,)}
         self.clusters = {'oa' : 'oasis', 'il' : 'illusion', 'mi' : 'mirage', 'at' : 'atlantis', 'am' : 'atrium'}
     
+    def get_metrics_c_mode(self):
+        data_url ='/api/datasources/proxy/1/api/v1/query?query=iMacUser_status{instance=~\".*\"}'
+        r = requests.get('%s%s' % (HOST, data_url,), headers=self.headers)
+        print("rrrrrrr:", r)
+        data = r.json()
+        print('getting metrics')
+        for each in data['data']['result']:
+            data = each['metric']['instance']
+            mac = data.split(".")[0]
+            cluster = mac.split("-")[0]
+            mac = mac.split("-")[1]
+            login = each['metric']['login']
+            cluster = self.clusters.get(cluster)
+            if cluster == None:
+                continue
+            if login == 'empty':
+                status = 88
+            else:
+                status = coalition_by_name(login)
+            if (status != 88):
+                print (status)
+            status = status - 87
+            self.db.change_mac_status(cluster, mac, int(status))
+
     def get_metrics(self):
         data_url ='/api/datasources/proxy/1/api/v1/query?query=iMacUser_status{instance=~\".*\"}'
         r = requests.get('%s%s' % (HOST, data_url,), headers=self.headers)
