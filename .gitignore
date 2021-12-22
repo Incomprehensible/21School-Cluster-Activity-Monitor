@@ -26,5 +26,7 @@ fp-info-cache
 *.csv
 
 # token file
+**credentials.py
+**config.yml
 software/Raspberry/credentials.py
 **.DS_Store

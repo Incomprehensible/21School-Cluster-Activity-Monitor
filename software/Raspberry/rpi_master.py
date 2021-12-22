@@ -97,10 +97,11 @@ class Master:
     def init_colors(self):
         for cluster in self.clusters:
             print(cluster)
-            if (C_MODE):
-                self.construct_packet(cluster, COMMAND_SET_C_COLORS)
-            else:
-                self.construct_packet(cluster, COMMAND_SET_COLORS)
+            #if (C_MODE):
+            #    self.construct_packet(cluster, COMMAND_SET_C_COLORS)
+            #else:
+            #    self.construct_packet(cluster, COMMAND_SET_COLORS)
+            self.construct_packet(cluster, COMMAND_SET_COLORS)
 
     def monitor_clusters(self):
         # parse metrics data for each cluster
@@ -160,24 +161,38 @@ class Master:
             i2c_array[13] = (COLOR_HERE & 0xff0000) >> 16
             i2c_array[14] = (COLOR_HERE & 0x00ff00) >> 8
             i2c_array[15] = (COLOR_HERE & 0x0000ff)
-            print(i2c_array)
-        elif cmd == COMMAND_SET_C_COLORS:
-            i2c_array[0] = int(COMMAND_SET_COLORS)
-            i2c_array[1] = (COLOR_EMP & 0xff0000) >> 16
-            i2c_array[2] = (COLOR_EMP & 0x00ff00) >> 8
-            i2c_array[3] = (COLOR_EMP & 0x0000ff)
-            i2c_array[4] = (COLOR_ALP & 0xff0000) >> 16
-            i2c_array[5] = (COLOR_ALP & 0x00ff00) >> 8
-            i2c_array[6] = (COLOR_ALP & 0x0000ff)
-            i2c_array[7] = (COLOR_CAP & 0xff0000) >> 16
-            i2c_array[8] = (COLOR_CAP & 0x00ff00) >> 8
-            i2c_array[9] = (COLOR_CAP & 0x0000ff)
-            i2c_array[10] = (COLOR_SAL & 0xff0000) >> 16
-            i2c_array[11] = (COLOR_SAL & 0x00ff00) >> 8
-            i2c_array[12] = (COLOR_SAL & 0x0000ff)
-            i2c_array[13] = (COLOR_MED & 0xff0000) >> 16
-            i2c_array[14] = (COLOR_MED & 0x00ff00) >> 8
-            i2c_array[15] = (COLOR_MED & 0x0000ff)
+            i2c_array[16] = (COLOR_EMP & 0xff0000) >> 16
+            i2c_array[17] = (COLOR_EMP & 0x00ff00) >> 8
+            i2c_array[18] = (COLOR_EMP & 0x0000ff)
+            i2c_array[19] = (COLOR_ALP & 0xff0000) >> 16
+            i2c_array[20] = (COLOR_ALP & 0x00ff00) >> 8
+            i2c_array[21] = (COLOR_ALP & 0x0000ff)
+            i2c_array[22] = (COLOR_CAP & 0xff0000) >> 16
+            i2c_array[23] = (COLOR_CAP & 0x00ff00) >> 8
+            i2c_array[24] = (COLOR_CAP & 0x0000ff)
+            i2c_array[25] = (COLOR_SAL & 0xff0000) >> 16
+            i2c_array[26] = (COLOR_SAL & 0x00ff00) >> 8
+            i2c_array[27] = (COLOR_SAL & 0x0000ff)
+            i2c_array[28] = (COLOR_MED & 0xff0000) >> 16
+            i2c_array[29] = (COLOR_MED & 0x00ff00) >> 8
+            i2c_array[30] = (COLOR_MED & 0x0000ff)
+            #initialize new colors when C_MODE = 1 to show colors on ATRIUM module as a legend correctly
+            if (C_MODE):
+                i2c_array[1] = i2c_array[19]
+                i2c_array[2] = i2c_array[20]
+                i2c_array[3] = i2c_array[21]
+                i2c_array[4] = i2c_array[22]
+                i2c_array[5] = i2c_array[23]
+                i2c_array[6] = i2c_array[24]
+                i2c_array[7] = i2c_array[28]
+                i2c_array[8] = i2c_array[29]
+                i2c_array[9] = i2c_array[30]
+                i2c_array[10] = i2c_array[25]
+                i2c_array[11] = i2c_array[26]
+                i2c_array[12] = i2c_array[27]
+                i2c_array[13] = i2c_array[16]
+                i2c_array[14] = i2c_array[17]
+                i2c_array[15] = i2c_array[18]
             print(i2c_array)
         stm32_addr = self.stm32[stm32].addr()
         try:
@@ -198,7 +213,10 @@ class Master:
         for led in range(0, leds):
             data[1+rooms+led] = self.db.fetch_cluster_led_status(cluster, led)
             if not data[1+rooms+led]:
-                data[1+rooms+led] = int(Status.COVID)
+                if (C_MODE):
+                    data[1+rooms+led] = 5
+                else:
+                    data[1+rooms+led] = int(Status.COVID)
             #data[6+led] = self.db.fetch_cluster_led_status(cluster, led)
         print(data)
         print(len(data))
@@ -235,9 +253,9 @@ if __name__ == '__main__':
     rpi.init_slaves()
     rpi.init_colors()
     while True:
-        try:
+        #try:
             rpi.monitor_clusters()
             time.sleep(0.5)
-        except:
-            pass
+        #except:
+        #    pass
 

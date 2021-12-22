@@ -23,7 +23,7 @@ def coalition_by_name_intra(login):
 	   "filter[login]":[login]
 	}
 	response = ic.get("users", params = payload)
-	coalition_id = 0
+	coalition_id = 88
 	if response.status_code == 200: # Make sure response status is OK
 		data = response.json()
 	if (len(data) > 0):
